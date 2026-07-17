@@ -3,16 +3,15 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask
 
-# --- CONFIGURACIÓN PARA EVITAR EL ERROR DE PUERTOS EN RENDER ---
+# --- CONFIGURACIÓN PARA RENDER ---
 server = Flask(__name__)
 
 # El bot lee el Token desde las variables de entorno de Render
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# 🔒 LISTA BLANCA: Coloca aquí tu ID numérico que te dio @userinfobot
+# 🔒 LISTA BLANCA COMPLETA: Tu ID real ya configurado sin textos que rompan el código
 ADMINS = [6810995154]
-# <-- REEMPLAZA ESTE NÚMERO CON TU ID REAL
 
 # Base de datos temporal para guardar credenciales por chat_id
 usuarios_db = {}
@@ -20,7 +19,6 @@ usuarios_db = {}
 # ----------------- MENÚS DE NAVEGACIÓN -----------------
 
 def menu_opciones_individuales():
-    """Genera el panel principal con el nuevo botón de salir incorporado."""
     markup = InlineKeyboardMarkup()
     markup.row_width = 1
     markup.add(
@@ -31,7 +29,7 @@ def menu_opciones_individuales():
         InlineKeyboardButton("🚗 Desbloquear Todos los Carros (Individual)", callback_data="opc_carros"),
         InlineKeyboardButton("👥 Clonar Cuenta CPM (Individual)", callback_data="opc_clonar"),
         InlineKeyboardButton("🔐 Ver mi Sesión Actual", callback_data="opc_ver_datos"),
-        InlineKeyboardButton("🚪 Cerrar Sesión (Salir)", callback_data="opc_salir")  # <-- NUEVO BOTÓN
+        InlineKeyboardButton("🚪 Cerrar Sesión (Salir)", callback_data="opc_salir")
     )
     return markup
 
@@ -60,7 +58,6 @@ def cmd_start(message):
         bot.reply_to(message, "⚠️ **Acceso denegado.** No tienes permisos para interactuar con este bot privado.")
         return
     
-    # Si el usuario ya está autenticado y usa /start, lo mandamos al menú en vez de borrarle los datos
     if chat_id in usuarios_db and usuarios_db[chat_id]["estado"] == "autenticado":
         bot.send_message(chat_id, "👋 Ya tienes una sesión activa. Selecciona una opción:", reply_markup=menu_opciones_individuales())
         return
@@ -112,7 +109,7 @@ def procesar_entrada_texto(message):
         bot.send_message(chat_id, texto_exito, parse_mode="Markdown", reply_markup=menu_opciones_individuales())
         
     elif estado_actual == "autenticado":
-        bot.send_message(chat_id, "👋 Selecciona una opción del menú interactivo o cierra sesión si deseas cambiar de cuenta:", reply_markup=menu_opciones_individuales())
+        bot.send_message(chat_id, "👋 Selecciona una opción del menú interactivo:", reply_markup=menu_opciones_individuales())
 
 # ----------------- MANEJADOR DE EVENTOS DE BOTONES -----------------
 
@@ -125,19 +122,14 @@ def interactuar_botones(call):
         bot.answer_callback_query(call.id, text="⚠️ No tienes acceso a este bot.", show_alert=True)
         return
 
-    # Lógica exclusiva para salir (no requiere estar autenticado para evitar bloqueos)
     if call.data == "opc_salir":
         bot.answer_callback_query(call.id, text="🚪 Cerrando sesión...", show_alert=False)
-        
-        # Eliminar por completo los datos guardados del usuario en el bot
         if chat_id in usuarios_db:
             usuarios_db.pop(chat_id)
-            
         texto_salida = (
             "🚪 **Sesión Cerrada Correctamente**\n\n"
             "Tus datos locales han sido borrados de la memoria del bot.\n"
-            "Si deseas conectar una nueva cuenta, presiona el comando inferior:"
-            "\n\n👉 /start"
+            "Si deseas conectar una nueva cuenta, presiona:\n\n👉 /start"
         )
         bot.edit_message_text(texto_salida, chat_id, message_id, parse_mode="Markdown")
         return
@@ -194,17 +186,14 @@ def interactuar_botones(call):
         )
         bot.edit_message_text(texto_final, chat_id, message_id, parse_mode="Markdown", reply_markup=boton_regresar())
 
-# --- RUTA FALSA PARA QUE RENDER NO DE ERROR DE PUERTOS ---
+# --- COMPATIBILIDAD CON RENDER ---
 @server.route("/")
 def webhook():
     return "Bot activo", 200
 
-# ----------------- INICIO SIMULTÁNEO -----------------
 if __name__ == "__main__":
     import threading
     port = int(os.environ.get("PORT", 5000))
     threading.Thread(target=lambda: server.run(host="0.0.0.0", port=port)).start()
-    
-    print(">>> Servidor del Bot de Telegram listo...")
     bot.polling(none_stop=True)
-  
+    

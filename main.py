@@ -11,7 +11,8 @@ TOKEN = os.getenv("TELEGRAM_TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
 # 🔒 LISTA BLANCA: Coloca aquí tu ID numérico que te dio @userinfobot
-ADMINS = [6810995154]  # <-- REEMPLAZA ESTE NÚMERO CON TU ID REAL
+ADMINS = [6810995154]
+# <-- REEMPLAZA ESTE NÚMERO CON TU ID REAL
 
 # Base de datos temporal para guardar credenciales por chat_id
 usuarios_db = {}
